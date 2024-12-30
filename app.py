@@ -1,20 +1,24 @@
+# 1. import libraries
 import streamlit as st
 import pandas as pd
 import numpy as np
 import pickle
 
-cylinders = st.number_input(label="cylinders", value=8.0)
-displacement = st.number_input(label="displacement", value=307.0)
-horsepower = st.number_input(label="horsepower", value=130.0)
-weight = st.number_input(label="weight", value=3504.0)
-acceleration = st.number_input(label="acceleration", value=12.0)
-model_year = st.number_input(label="model year", value=70)
+# 2. add button in streamlit
+cylinders = st.number_input(label='cylinders', values = 8.0)
+displacement = st.number_input(label='displacement', values = 307.0)
+horsepower = st.number_input(label='horsepower', values = 130.0)
+weight = st.number_input(label='weight', values = 3504.0)
+acceleration = st.number_input(label='acceleration', values = 12.0)
+model_year = st.number_input(label='model year', values = 70.0)
 
 origin = st.selectbox(
-    label="origin",
-    options=["usa", "japan", "europe"],
+    label = 'Origin',
+    option = ['USA', 'JAPAN', 'EUROPE'],
+    placeholder = 'Select Origin'
 )
 
+# 3. Convert feature 
 X_num = np.array(
     object=[
         [
@@ -24,58 +28,42 @@ X_num = np.array(
             weight,
             acceleration,
             model_year,
+            origin
         ]
-    ]
+    ],
+    dtype=np.float32
 )
 
-# Load standard scaler
-with open(file="ss.pkl", mode="rb") as ss_file:
-    ss = pickle.load(file=ss_file)
+# 4. import our pre-trained model
+with open(file='scaler.pkl', mode='rb') as scaler:
+    scaler = pickle.load(file=scaler)
 
-# transform
-X1 = ss.transform(X_num)
-# st.write(X_num)
+with open(file='encode.pkl', mode='rb') as encode:
+    encoder = pickle.load(file=encode)
 
-# Load label encoder
-with open(file="le.pkl", mode="rb") as le_file:
-    le = pickle.load(file=le_file)
+with open(file='model_lr.pkl', mode='rb') as lr:
+    lr = pickle.load(file=lr)
 
-# transform
-X_cat = np.array(object=[origin])
-X2 = le.transform(X_cat)
-# st.write(X_cat)
+# 5. Pre-proccessing
+X1 = scaler.transform(X_num)
+X_cat = np.array(object=[origin], dtype=np.float32)
+X_raw = np.concat([X1, X_cat.reshape(-1,1)], axis=1)
 
-# combinding feature
-X = np.concat([X1, X2.reshape(-1, 1)], axis=1)
-# st.write(X)
-
-# Prediction
-with open(file="lr.pkl", mode="rb") as lr_file:
-    lr = pickle.load(file=lr_file)
+# 6. Prediction
 y = lr.predict(X)
-# st.write(1/y)
-
-X_raw = np.concat([X_num, X_cat.reshape(-1, 1)], axis=1)
 y_raw = 1 / y
 
-data = np.concat([X_raw, y_raw.reshape(-1, 1)], axis=1)
-df = pd.DataFrame(
-    data=data,
-    columns=[
-        "cylinders",
-        "displacement",
-        "horsepower",
-        "weight",
-        "acceleration",
-        "model year",
-        "origin",
-        "MPG Predict",
-    ],
-)
+# 7. Convert to dataframe
+data = np.concat([X_raw, y_raw.reshape(-1,1)], axis=1)
+df = pd.DataFrame(data=data,
+                    columns=[
+                        'cylinders',
+                        'displacement',
+                        'horsepower',
+                        'weight',
+                        'acceleration',
+                        'model_year',
+                        'origin',
+                        'mpg'
+                    ])
 st.write(df)
-
-
-
-
-
-# save this file and type in the cmd "streamlit run app.py"
